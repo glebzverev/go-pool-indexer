@@ -28,3 +28,11 @@ func SelectPools(db *pg.DB) (pools []Pool) {
 	}
 	return
 }
+
+func SelectResreves(db *pg.DB) (reserves []Reserves) {
+	err := db.Model(&reserves).Select()
+	if err != nil {
+		panic(err)
+	}
+	return
+}

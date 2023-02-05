@@ -47,3 +47,18 @@ func (pool *Pool) SafetyInsert(db *pg.DB) error {
 	fmt.Println(inserted, pool)
 	return nil
 }
+
+func (reserves *Reserves) SafetyInsert(db *pg.DB) error {
+	inserted, err := db.Model(reserves).
+		Column("network").
+		Where("address = ?address").
+		Where("block_number = ?block_number").
+		OnConflict("DO NOTHING"). // OnConflict is optional
+		Returning("network").
+		SelectOrInsert()
+	if err != nil {
+		return err
+	}
+	fmt.Println(inserted, reserves)
+	return nil
+}

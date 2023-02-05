@@ -23,6 +23,7 @@ func CreateSchema(db *pg.DB) error {
 	models := []interface{}{
 		(*Token)(nil),
 		(*Dex)(nil),
+		(*Reserves)(nil),
 		(*Pool)(nil),
 	}
 

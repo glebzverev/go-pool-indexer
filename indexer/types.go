@@ -14,3 +14,9 @@ type Dex struct {
 	Name    string `json:"name"`
 	Factory string `json:"address"`
 }
+
+// var Selectors = struct {
+// 	GetPair []byte
+// }{
+// 	GetPair: crypto.Keccak256([]byte("getPair(address,address)")),
+// }

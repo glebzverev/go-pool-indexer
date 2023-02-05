@@ -25,7 +25,7 @@ func (d Dex) String() string {
 	return fmt.Sprintf("%s<%s %s %s>", d.Name, d.Network, d.FactoryAddress, d.RouterAddress)
 }
 
-type Reserve struct {
+type Reserves struct {
 	Network     string
 	Address     string
 	Reserve0    string
@@ -40,8 +40,7 @@ type Pool struct {
 	Address           string `pg:",pk"`
 	Token0Address     *Token
 	Token1Address     *Token
-	LastReserveUpdate *Reserve
-	Liquidity         uint64 // Reserve0 * Reserve1
+	LastReserveUpdate *Reserves
 }
 
 func (p Pool) String() string {

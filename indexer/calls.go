@@ -9,8 +9,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/glebzverev/go-pool-indexer/db"
 	"github.com/pkg/errors"
 )
 
@@ -29,36 +27,42 @@ func toBlockNumArg(number *big.Int) string {
 	return hexutil.EncodeBig(number)
 }
 
-func GetPair(eth *ethclient.Client, tokenA, tokenB string, dex db.Dex, blockNumber *big.Int) (pair_address common.Address, err error) {
-	var batch []rpc.BatchElem
+func GetPair(eth *ethclient.Client, tokenA, tokenB, factoryAddress string, blockNumber *big.Int) (pair_address common.Address, err error) {
 	err = nil
-
-	arg := toBlockNumArg(blockNumber)
-
-	data := make([]byte, 4+12)
-
-	binary.BigEndian.PutUint32(data[:4], 0xf30dba93)
-	addressA := common.HexToAddress(tokenA)
-	addressB := common.HexToAddress(tokenB)
-	data = append(data, addressA.Bytes()...)
 	zeros := make([]byte, 12)
+	data := make([]byte, 4+12)
+	bytesA := common.HexToAddress(tokenA).Bytes()
+	bytesB := common.HexToAddress(tokenB).Bytes()
+	binary.BigEndian.PutUint32(data[:4], 0xe6a43905)
+	data = append(data, bytesA...)
 	data = append(data, zeros...)
-	data = append(data, addressB.Bytes()...)
-	dexAddress := common.HexToAddress(dex.FactoryAddress)
+	data = append(data, bytesB...)
+	dexAddress := common.HexToAddress(factoryAddress)
 	msg := ethereum.CallMsg{
-		To:   &tokenAddress,
-		Data: dataDecimals,
+		To:   &dexAddress,
+		Data: data,
 	}
-
-			"data": hexutil.Bytes(data),
+	pairAddressBytes, err := eth.CallContract(context.Background(), msg, blockNumber)
+	if err != nil {
+		panic(err)
 	}
+	pair_address = common.BytesToAddress(pairAddressBytes)
+	return
+}
 
-	// decimalsBytes, err := eth.CallContract(context.Background(), msg, nil)
-	// if err != nil {
-	// 	return "", errors.Wrap(err, "failed to get token decimals")
-	// }
-	pair_address = common.HexToAddress(tokenA)
-	// fmt.Println(decimalsBytes)
+func GetReserves(eth *ethclient.Client, poolAddr common.Address, blockNumber *big.Int) (xVirtual, yVirtual *big.Int, err error) {
+	data := make([]byte, 4)
+	binary.BigEndian.PutUint32(data, 0x0902f1ac)
+	msg := ethereum.CallMsg{
+		To:   &poolAddr,
+		Data: data,
+	}
+	resp, err := eth.CallContract(context.Background(), msg, blockNumber)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "failed to get reserves")
+	}
+	xVirtual = new(big.Int).SetBytes(resp[:32])
+	yVirtual = new(big.Int).SetBytes(resp[32:64])
 	return
 }
 
