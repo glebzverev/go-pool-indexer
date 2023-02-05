@@ -3,14 +3,14 @@ package indexer
 import (
 	"context"
 	"encoding/binary"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"os"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/glebzverev/go-pool-indexer/db"
 	"github.com/pkg/errors"
 )
 
@@ -18,49 +18,47 @@ func Echo(s string) string {
 	return s
 }
 
-func Schema() {
-	eth, err := ethclient.Dial(os.Getenv("KEY"))
-	if err != nil {
-		panic(err)
+func toBlockNumArg(number *big.Int) string {
+	if number == nil {
+		return "latest"
 	}
-	jsonFile, err := os.Open("./config.json")
-	if err != nil {
-		fmt.Println(err)
+	pending := big.NewInt(-1)
+	if number.Cmp(pending) == 0 {
+		return "pending"
 	}
-	fmt.Println("Successfully Opened users.json")
-	defer jsonFile.Close()
-
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-	var chains Chains
-
-	json.Unmarshal(byteValue, &chains)
-	for _, chain := range chains.Chains {
-		fmt.Println("Chain Name: " + chain.Name)
-
-		for i := 0; i < len(chain.Tokens)-1; i++ {
-			for j := i + 1; j < len(chain.Tokens); j++ {
-
-				getPair(eth, chain.Tokens[i], chain.Tokens[j], chain.Dexes)
-			}
-		}
-	}
+	return hexutil.EncodeBig(number)
 }
 
-func getPair(eth *ethclient.Client, tokenA, tokenB string, Dexes []Dex) (pair_address common.Address, error err) {
-	dataDecimals := make([]byte, 4)
+func GetPair(eth *ethclient.Client, tokenA, tokenB string, dex db.Dex, blockNumber *big.Int) (pair_address common.Address, err error) {
+	var batch []rpc.BatchElem
+	err = nil
 
-	binary.BigEndian.PutUint32(dataDecimals, 0x313ce567)
+	arg := toBlockNumArg(blockNumber)
 
+	data := make([]byte, 4+12)
+
+	binary.BigEndian.PutUint32(data[:4], 0xf30dba93)
+	addressA := common.HexToAddress(tokenA)
+	addressB := common.HexToAddress(tokenB)
+	data = append(data, addressA.Bytes()...)
+	zeros := make([]byte, 12)
+	data = append(data, zeros...)
+	data = append(data, addressB.Bytes()...)
+	dexAddress := common.HexToAddress(dex.FactoryAddress)
 	msg := ethereum.CallMsg{
 		To:   &tokenAddress,
 		Data: dataDecimals,
 	}
-	decimalsBytes, err := eth.CallContract(context.Background(), msg, nil)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to get token decimals")
+
+			"data": hexutil.Bytes(data),
 	}
+
+	// decimalsBytes, err := eth.CallContract(context.Background(), msg, nil)
+	// if err != nil {
+	// 	return "", errors.Wrap(err, "failed to get token decimals")
+	// }
 	pair_address = common.HexToAddress(tokenA)
-	fmt.Println(decimalsBytes)
+	// fmt.Println(decimalsBytes)
 	return
 }
 
@@ -94,19 +92,4 @@ func getTokenInfo(eth *ethclient.Client, tokenAddress common.Address) (decimals 
 		words = append(words, dataSymbol[i])
 	}
 	return decimalsBytes[len(decimalsBytes)-1], string(words), nil
-}
-
-type Chain struct {
-	Name   string   `json:"name"`
-	Tokens []string `json:"token_addresses"`
-	Dexes  []Dex    `json:"dexes"`
-}
-
-type Chains struct {
-	Chains []Chain `json:"chains"`
-}
-
-type Dex struct {
-	Name    string `json:"name"`
-	Factory string `json:"address"`
 }
