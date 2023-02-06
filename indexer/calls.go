@@ -66,7 +66,7 @@ func GetReserves(eth *ethclient.Client, poolAddr common.Address, blockNumber *bi
 	return
 }
 
-func getTokenInfo(eth *ethclient.Client, tokenAddress common.Address) (decimals uint8, symbol string, err error) {
+func GetTokenInfo(eth *ethclient.Client, tokenAddress common.Address) (decimals uint8, symbol string, err error) {
 	dataDecimals := make([]byte, 4)
 	dataSymbol := make([]byte, 4)
 
@@ -95,5 +95,9 @@ func getTokenInfo(eth *ethclient.Client, tokenAddress common.Address) (decimals 
 		}
 		words = append(words, dataSymbol[i])
 	}
-	return decimalsBytes[len(decimalsBytes)-1], string(words), nil
+	if len(decimalsBytes) > 0 {
+		return decimalsBytes[len(decimalsBytes)-1], string(words), nil
+	} else {
+		return 0, string(words), nil
+	}
 }

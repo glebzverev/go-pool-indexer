@@ -43,7 +43,7 @@ func JsonToDataBase(eth *ethclient.Client, dataBase *pg.DB) {
 	for _, chain := range chains.Chains {
 		fmt.Println("Chain Name: " + chain.Name)
 		for _, token := range chain.Tokens {
-			decimals, symbol, err := getTokenInfo(eth, common.HexToAddress(token))
+			decimals, symbol, err := GetTokenInfo(eth, common.HexToAddress(token))
 			if err != nil {
 				fmt.Println("can't get token info", err)
 			}
