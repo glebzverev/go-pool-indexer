@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/glebzverev/go-pool-indexer/db"
 	"github.com/glebzverev/go-pool-indexer/indexer"
 	"github.com/go-pg/pg/v10"
 )
@@ -35,8 +36,7 @@ func existsInSlice[T comparable](val T, values []T) bool {
 	}
 	return false
 }
-func main() {
-
+func main1() {
 	eth, err := ethclient.Dial(os.Getenv("ETH"))
 	if err != nil {
 		panic(err)
@@ -63,7 +63,7 @@ func main() {
 	}
 
 	query := ethereum.FilterQuery{
-		FromBlock: new(big.Int).SetUint64(blockNumber - 10),
+		FromBlock: new(big.Int).SetUint64(blockNumber - 100),
 		ToBlock:   new(big.Int).SetUint64(blockNumber - 1),
 		Topics:    [][]common.Hash{{Topics.Transfer}},
 	}
@@ -89,14 +89,70 @@ func main() {
 		return tokenAdresses[keys[i]] > tokenAdresses[keys[j]]
 	})
 
+	database := pg.Connect(&pg.Options{
+		User:     "diplomant",
+		Password: "diplomant",
+		Database: "diplom",
+	})
+	defer database.Close()
+
 	for _, k := range keys {
 		if tokenAdresses[k] > 5 {
+
 			decimals, symbol, err := indexer.GetTokenInfo(eth, k)
 			if err != nil {
 				fmt.Println(err)
 			} else {
-				fmt.Printf("%s <%s, %d, %d>\n", symbol, k, tokenAdresses[k], decimals)
+				token := &db.Token{
+					Network:  "ethereum",
+					Address:  k.String(),
+					Decimals: decimals,
+					Symbol:   symbol,
+				}
+				token.SafetyInsert(database)
+				// fmt.Printf("%s <%s, %d, %d>\n", symbol, k, tokenAdresses[k], decimals)
 			}
 		}
 	}
+	tokens := db.SelectTokens(database)
+	for _, t := range tokens {
+		fmt.Println(t)
+	}
+
+}
+
+func main() {
+	eth, err := ethclient.Dial(os.Getenv("ETH"))
+	if err != nil {
+		panic(err)
+	}
+
+	database := pg.Connect(&pg.Options{
+		User:     "diplomant",
+		Password: "diplomant",
+		Database: "diplom",
+	})
+	defer database.Close()
+
+	indexer.PoolsInit(eth, database)
+}
+
+func main3() {
+	// eth, err := ethclient.Dial(os.Getenv("ETH"))
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	database := pg.Connect(&pg.Options{
+		User:     "diplomant",
+		Password: "diplomant",
+		Database: "diplom",
+	})
+
+	defer database.Close()
+
+	// indexer.JsonToDataBase(eth, database)
+	// fmt.Println(db.SelectDexes(database))
+	// fmt.Println(db.SelectTokens(database))
+	fmt.Println(len(db.SelectPools(database)))
 }

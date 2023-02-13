@@ -10,11 +10,12 @@ import (
 
 func TestSchema(t *testing.T) {
 	dataBase = pg.Connect(&pg.Options{
-		User:     "postgres",
-		Password: "password",
-		Database: "go-indexer",
+		User:     "diplomant",
+		Password: "diplomant",
+		Database: "diplom",
 	})
 	defer dataBase.Close()
+	fmt.Println(len(db.SelectTokens(dataBase)))
 	fmt.Println(db.SelectTokens(dataBase))
 	fmt.Println(db.SelectDexes(dataBase))
 }

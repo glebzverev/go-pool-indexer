@@ -25,10 +25,6 @@ func check(err error) {
 }
 
 func JsonToDataBase(eth *ethclient.Client, dataBase *pg.DB) {
-	// eth, err := ethclient.Dial(os.Getenv("KEY"))
-	// if err != nil {
-	// 	panic(err)
-	// }
 	jsonFile, err := os.Open("./config.json")
 	if err != nil {
 		fmt.Println(err)

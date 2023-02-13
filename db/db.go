@@ -7,9 +7,9 @@ import (
 
 func DEX_ExampleDB_Model() {
 	db := pg.Connect(&pg.Options{
-		User:     "postgres",
-		Password: "password",
-		Database: "go-indexer",
+		User:     "diplomant",
+		Password: "diplomant",
+		Database: "diplom",
 	})
 	defer db.Close()
 	err := CreateSchema(db)
