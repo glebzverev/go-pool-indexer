@@ -7,11 +7,16 @@ type Token struct {
 	Address     string `pg:",pk"`
 	Decimals    uint8
 	Symbol      string
-	TotalSupply string
+	TotalSupply float64
+}
+
+type TokenArray struct {
+	Tokens  []Token
+	current int
 }
 
 func (t Token) String() string {
-	return fmt.Sprintf("%s<%s %s %d>", t.Symbol, t.Network, t.Address, t.Decimals)
+	return fmt.Sprintf("\t%s <%d>\t", t.Symbol, t.Decimals)
 }
 
 type Dex struct {
@@ -28,9 +33,9 @@ func (d Dex) String() string {
 type Reserves struct {
 	Network     string
 	Address     string
-	Reserve0    string
-	Reserve1    string
-	Liquidity   string
+	Reserve0    float64
+	Reserve1    float64
+	Liquidity   float64
 	BlockNumber uint64 // Reserve0 * Reserve1
 }
 
@@ -45,4 +50,31 @@ type Pool struct {
 
 func (p Pool) String() string {
 	return fmt.Sprintf("%s: %s <%s>", p.Network, p.DexInfo, p.Address)
+}
+
+func (r *TokenArray) Plan() int {
+	return (len(r.Tokens))
+}
+
+func (r *TokenArray) Remaining() bool {
+	// if r.current == r.Plan() {
+	// 	r.current = 0
+	// 	return false
+	// }
+	return r.current < len(r.Tokens)
+}
+
+func (r *TokenArray) Forward() (interface{}, error) {
+	var token Token
+	if r.current >= r.Plan() {
+		return nil, fmt.Errorf("Last elem. Seg error")
+	} else {
+		token = r.Tokens[r.current]
+		r.current++
+	}
+	return token, nil
+}
+
+type TokenInterface interface {
+	String() string
 }

@@ -48,6 +48,20 @@ func (pool *Pool) SafetyInsert(db *pg.DB) error {
 	return nil
 }
 
+func (pool *Pool) SafetyUpdate(db *pg.DB) error {
+	inserted, err := db.Model(pool).
+		Column("address").
+		Where("address = ?address").
+		OnConflict("(address) DO UPDATE"). // OnConflict is optional
+		Insert()
+	fmt.Println(inserted, err)
+	if err != nil {
+		return err
+	}
+	fmt.Println(inserted, pool)
+	return nil
+}
+
 func (reserves *Reserves) SafetyInsert(db *pg.DB) error {
 	inserted, err := db.Model(reserves).
 		Column("network").

@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math/big"
 	"os"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -49,7 +49,7 @@ func JsonToDataBase(eth *ethclient.Client, dataBase *pg.DB) {
 				Address:     token,
 				Decimals:    decimals,
 				Symbol:      symbol,
-				TotalSupply: "10",
+				TotalSupply: .0,
 			}
 			err = dbToken.SafetyInsert(dataBase)
 			if err != nil {
@@ -76,35 +76,79 @@ func PoolsInit(eth *ethclient.Client, dataBase *pg.DB) {
 	blockNumber, err := eth.BlockNumber(context.Background())
 	check(err)
 	for _, dex := range dexes {
-		for i := 0; i < len(tokens)-1; i++ {
+		for i := 4; i < len(tokens)-1; i++ {
 			for j := i; j < len(tokens); j++ {
-				pairAddress, err := GetPair(eth, tokens[i].Address, tokens[j].Address, dex.FactoryAddress, nil)
+				tokenA := tokens[i]
+				tokenB := tokens[j]
+				if tokenA.Address > tokenB.Address {
+					tokenA = tokens[j]
+					tokenB = tokens[i]
+				}
+				pairAddress, err := GetPair(eth, tokenA.Address, tokenB.Address, dex.FactoryAddress, nil)
 				check(err)
 				if pairAddress != zeroAddress {
-					x, y, err := GetReserves(eth, pairAddress, nil)
+					x, y, err := GetReserves(eth, pairAddress, tokenA.Decimals, tokenB.Decimals, nil)
 					check(err)
 					fmt.Println(x, y)
 					reserves := &db.Reserves{
 						Network:     dex.Network,
 						Address:     pairAddress.String(),
-						Reserve0:    x.String(),
-						Reserve1:    y.String(),
-						Liquidity:   new(big.Int).Mul(x, y).String(),
+						Reserve0:    x,
+						Reserve1:    y,
+						Liquidity:   x * y,
 						BlockNumber: blockNumber,
 					}
 					pool := &db.Pool{
 						Network:           dex.Network,
 						DexInfo:           &dex,
 						Address:           pairAddress.String(),
-						Token0Address:     &tokens[i],
-						Token1Address:     &tokens[j],
+						Token0Address:     &tokenA,
+						Token1Address:     &tokenB,
 						LastReserveUpdate: reserves,
 					}
 					reserves.SafetyInsert(dataBase)
 					pool.SafetyInsert(dataBase)
+					time.Sleep(time.Millisecond * 100)
 				}
 			}
 		}
 	}
 
+}
+
+func indexTokens(i int, tokens []db.Token, eth *ethclient.Client, dataBase *pg.DB, dex db.Dex, blockNumber uint64) {
+	for j := i; j < len(tokens); j++ {
+		tokenA := tokens[i]
+		tokenB := tokens[j]
+		if tokenA.Address > tokenB.Address {
+			tokenA = tokens[j]
+			tokenB = tokens[i]
+		}
+		pairAddress, err := GetPair(eth, tokenA.Address, tokenB.Address, dex.FactoryAddress, nil)
+		check(err)
+		if pairAddress != zeroAddress {
+			x, y, err := GetReserves(eth, pairAddress, tokenA.Decimals, tokenB.Decimals, nil)
+			check(err)
+			fmt.Println(x, y)
+			reserves := &db.Reserves{
+				Network:     dex.Network,
+				Address:     pairAddress.String(),
+				Reserve0:    x,
+				Reserve1:    y,
+				Liquidity:   x * y,
+				BlockNumber: blockNumber,
+			}
+			pool := &db.Pool{
+				Network:           dex.Network,
+				DexInfo:           &dex,
+				Address:           pairAddress.String(),
+				Token0Address:     &tokenA,
+				Token1Address:     &tokenB,
+				LastReserveUpdate: reserves,
+			}
+			reserves.SafetyInsert(dataBase)
+			pool.SafetyInsert(dataBase)
+			time.Sleep(time.Millisecond * 100)
+		}
+	}
 }

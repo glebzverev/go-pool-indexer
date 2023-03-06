@@ -29,6 +29,16 @@ func SelectPools(db *pg.DB) (pools []Pool) {
 	return
 }
 
+func GetPool(db *pg.DB, address string, pool *Pool) {
+	err := db.Model(pool).
+		// Relation("pools").
+		Where("pool.Address = ?", address).
+		Select()
+	if err != nil {
+		panic(err)
+	}
+}
+
 func SelectResreves(db *pg.DB) (reserves []Reserves) {
 	err := db.Model(&reserves).Select()
 	if err != nil {

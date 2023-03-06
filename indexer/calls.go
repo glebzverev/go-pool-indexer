@@ -50,7 +50,7 @@ func GetPair(eth *ethclient.Client, tokenA, tokenB, factoryAddress string, block
 	return
 }
 
-func GetReserves(eth *ethclient.Client, poolAddr common.Address, blockNumber *big.Int) (xVirtual, yVirtual *big.Int, err error) {
+func GetReserves(eth *ethclient.Client, poolAddr common.Address, decimalsA uint8, decimalsB uint8, blockNumber *big.Int) (xVirtual, yVirtual float64, err error) {
 	data := make([]byte, 4)
 	binary.BigEndian.PutUint32(data, 0x0902f1ac)
 	msg := ethereum.CallMsg{
@@ -59,10 +59,10 @@ func GetReserves(eth *ethclient.Client, poolAddr common.Address, blockNumber *bi
 	}
 	resp, err := eth.CallContract(context.Background(), msg, blockNumber)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to get reserves")
+		return .0, .0, errors.Wrap(err, "failed to get reserves")
 	}
-	xVirtual = new(big.Int).SetBytes(resp[:32])
-	yVirtual = new(big.Int).SetBytes(resp[32:64])
+	xVirtual = BigIntToFloat(new(big.Int).SetBytes(resp[:32]), decimalsA)
+	yVirtual = BigIntToFloat(new(big.Int).SetBytes(resp[32:64]), decimalsB)
 	return
 }
 
