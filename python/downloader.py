@@ -57,4 +57,11 @@ class Downloader:
         '''.format(network)
         return pio.read_sql_query(query, self.conn).network[0]
 
+    def get_reserves_by_block(self, network, blockNumber):
+        query = '''
+            SELECT * FROM reserves        
+            WHERE block_number='{}';
+        '''.format(blockNumber)
+        return pio.read_sql_query(query, self.conn)
+        
     

@@ -13,7 +13,7 @@ import (
 )
 
 func TestSchema(t *testing.T) {
-	dataBase = pg.Connect(&pg.Options{
+	dataBase := pg.Connect(&pg.Options{
 		User:     "diplomant",
 		Password: "diplomant",
 		Database: "diplom",
@@ -25,7 +25,7 @@ func TestSchema(t *testing.T) {
 }
 
 func TestTqdm(t *testing.T) {
-	dataBase = pg.Connect(&pg.Options{
+	dataBase := pg.Connect(&pg.Options{
 		User:     "diplomant",
 		Password: "diplomant",
 		Database: "diplom",
@@ -38,13 +38,19 @@ func TestTqdm(t *testing.T) {
 		Tokens: db.SelectTokens(dataBase),
 	}
 
-	tqdm.With(tokenArray, "hello", processToken[db.Token])
+	err := tqdm.With(tokenArray, "hello", processToken[db.Token])
+	if err != nil {
+		panic(err)
+	}
 }
 
 func processToken[T Type](v interface{}) (brk bool) {
 	time.Sleep(time.Millisecond * 100)
 	elem := v.(T)
-	io.WriteString(os.Stdout, elem.String())
+	_, err := io.WriteString(os.Stdout, elem.String())
+	if err != nil {
+		panic(err)
+	}
 	return
 }
 

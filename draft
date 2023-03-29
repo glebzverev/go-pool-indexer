@@ -1,0 +1,107 @@
+func main3() {
+	eth, err := ethclient.Dial(os.Getenv("ETH"))
+	if err != nil {
+		panic(err)
+	}
+
+	database := pg.Connect(&pg.Options{
+		User:     "diplomant",
+		Password: "diplomant",
+		Database: "diplom",
+	})
+	defer database.Close()
+
+	if createSchema {
+		err := db.CreateSchema(database)
+		if err != nil {
+			panic(err)
+		}
+		tqdm.R(0, 10, func(v interface{}) (brk bool) {
+			time.Sleep(1000 * time.Millisecond)
+			return
+		})
+	}
+	if tokenListen {
+		blockNumber, err := eth.BlockNumber(context.Background())
+		if err != nil {
+			panic(err)
+		}
+
+		query := ethereum.FilterQuery{
+			FromBlock: new(big.Int).SetUint64(blockNumber - 100),
+			ToBlock:   new(big.Int).SetUint64(blockNumber - 1),
+			Topics:    [][]common.Hash{{Topics.Transfer}},
+		}
+
+		logs, err := eth.FilterLogs(context.Background(), query)
+		tokenAdresses := make(map[common.Address]int)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if len(logs) == 0 {
+			fmt.Println("Have no events to this story period")
+		} else {
+			for _, log := range logs {
+				tokenAdresses[log.Address] += 1
+			}
+		}
+		keys := make([]common.Address, 0, len(tokenAdresses))
+		for key := range tokenAdresses {
+			keys = append(keys, key)
+		}
+
+		sort.SliceStable(keys, func(i, j int) bool {
+			return tokenAdresses[keys[i]] > tokenAdresses[keys[j]]
+		})
+		for _, k := range keys {
+			if tokenAdresses[k] > 5 {
+
+				decimals, symbol, err := indexer.GetTokenInfo(eth, k)
+				if err != nil {
+					fmt.Println(err)
+				} else {
+					token := &db.Token{
+						Network:  "ethereum",
+						Address:  k.String(),
+						Decimals: decimals,
+						Symbol:   symbol,
+					}
+					err := token.SafetyInsert(database)
+					if err != nil {
+						panic(err)
+					}
+				}
+			}
+		}
+	}
+	if jsonToDatabase {
+		indexer.JsonToDataBase(eth, database)
+		tqdm.R(0, 10, func(v interface{}) (brk bool) {
+			time.Sleep(1000 * time.Millisecond)
+			return
+		})
+	}
+	if poolIndex {
+		indexer.PoolsInit(eth, database)
+		tqdm.R(0, 10, func(v interface{}) (brk bool) {
+			time.Sleep(1000 * time.Millisecond)
+			return
+		})
+	}
+}
+
+var (
+	jsonToDatabase bool = true
+	createSchema   bool = true
+	poolIndex      bool = true
+	tokenListen    bool = true
+)
+
+func existsInSlice[T comparable](val T, values []T) bool {
+	for _, v := range values {
+		if val == v {
+			return true
+		}
+	}
+	return false
+}

@@ -106,8 +106,14 @@ func PoolsInit(eth *ethclient.Client, dataBase *pg.DB) {
 						Token1Address:     &tokenB,
 						LastReserveUpdate: reserves,
 					}
-					reserves.SafetyInsert(dataBase)
-					pool.SafetyInsert(dataBase)
+					err = reserves.SafetyInsert(dataBase)
+					if err != nil {
+						panic(err)
+					}
+					err = pool.SafetyInsert(dataBase)
+					if err != nil {
+						panic(err)
+					}
 					time.Sleep(time.Millisecond * 100)
 				}
 			}

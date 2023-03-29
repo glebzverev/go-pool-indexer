@@ -3,20 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/big"
 	"os"
-	"sort"
-	"time"
 
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/glebzverev/go-pool-indexer/db"
 	"github.com/glebzverev/go-pool-indexer/indexer"
 	"github.com/go-pg/pg/v10"
-	"github.com/sbwhitecap/tqdm"
 )
 
 var Topics = struct {
@@ -34,131 +29,57 @@ var Topics = struct {
 	SyncVelo: crypto.Keccak256Hash([]byte("Sync(uint256,uint256)")),
 	Transfer: crypto.Keccak256Hash([]byte("Transfer(address,address,uint256)")),
 }
-var (
-	dataBase *pg.DB
-)
+
+// var (
+// 	dataBase *pg.DB
+// )
 
 func init() {
 }
 
-var (
-	zeroAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
-)
-
-func existsInSlice[T comparable](val T, values []T) bool {
-	for _, v := range values {
-		if val == v {
-			return true
-		}
-	}
-	return false
-}
-
-func main3() {
-	eth, err := ethclient.Dial(os.Getenv("ETH"))
-	if err != nil {
-		panic(err)
-	}
-
-	database := pg.Connect(&pg.Options{
+func main() {
+	dataBase := pg.Connect(&pg.Options{
 		User:     "diplomant",
 		Password: "diplomant",
 		Database: "diplom",
 	})
-	defer database.Close()
+	defer dataBase.Close()
 
-	if createSchema {
-		db.CreateSchema(database)
-		tqdm.R(0, 10, func(v interface{}) (brk bool) {
-			time.Sleep(1000 * time.Millisecond)
-			return
-		})
+	eth, err := ethclient.Dial(os.Getenv("ETH"))
+	if err != nil {
+		panic(err)
 	}
-	if tokenListen {
-		blockNumber, err := eth.BlockNumber(context.Background())
+	pools := db.SelectPools(dataBase)
+	blockNumber, err := eth.BlockNumber(context.Background())
+	if err != nil {
+		panic(err)
+	}
+	blockNumberBig := new(big.Int).SetUint64(blockNumber)
+	for _, pool := range pools {
+		addr := common.HexToAddress(pool.Address)
+		if pool.Token0Address == nil || pool.Token1Address == nil {
+			continue
+		}
+		dec1 := pool.Token0Address.Decimals
+		dec2 := pool.Token1Address.Decimals
+		x, y, err := indexer.GetReserves(eth, addr, dec1, dec2, blockNumberBig)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		liq := x * y
+		reserve := &db.Reserves{
+			Network:     "ethereum",
+			Address:     pool.Address,
+			Reserve0:    x,
+			Reserve1:    y,
+			Liquidity:   liq,
+			BlockNumber: blockNumber,
+		}
+		err = reserve.SafetyInsert(dataBase)
 		if err != nil {
 			panic(err)
 		}
-
-		query := ethereum.FilterQuery{
-			FromBlock: new(big.Int).SetUint64(blockNumber - 100),
-			ToBlock:   new(big.Int).SetUint64(blockNumber - 1),
-			Topics:    [][]common.Hash{{Topics.Transfer}},
-		}
-
-		logs, err := eth.FilterLogs(context.Background(), query)
-		tokenAdresses := make(map[common.Address]int)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if len(logs) == 0 {
-			fmt.Println("Have no events to this story period")
-		} else {
-			for _, log := range logs {
-				tokenAdresses[log.Address] += 1
-			}
-		}
-		keys := make([]common.Address, 0, len(tokenAdresses))
-		for key := range tokenAdresses {
-			keys = append(keys, key)
-		}
-
-		sort.SliceStable(keys, func(i, j int) bool {
-			return tokenAdresses[keys[i]] > tokenAdresses[keys[j]]
-		})
-		for _, k := range keys {
-			if tokenAdresses[k] > 5 {
-
-				decimals, symbol, err := indexer.GetTokenInfo(eth, k)
-				if err != nil {
-					fmt.Println(err)
-				} else {
-					token := &db.Token{
-						Network:  "ethereum",
-						Address:  k.String(),
-						Decimals: decimals,
-						Symbol:   symbol,
-					}
-					token.SafetyInsert(database)
-				}
-			}
-		}
-	}
-	if jsonToDatabase {
-		indexer.JsonToDataBase(eth, database)
-		tqdm.R(0, 10, func(v interface{}) (brk bool) {
-			time.Sleep(1000 * time.Millisecond)
-			return
-		})
-	}
-	if poolIndex {
-		indexer.PoolsInit(eth, database)
-		tqdm.R(0, 10, func(v interface{}) (brk bool) {
-			time.Sleep(1000 * time.Millisecond)
-			return
-		})
+		// break
 	}
 }
-
-func main() {
-	eth, err := ethclient.Dial(os.Getenv("ETH"))
-	if err != nil {
-		panic(err)
-	}
-
-	database := pg.Connect(&pg.Options{
-		User:     "diplomant",
-		Password: "diplomant",
-		Database: "diplom",
-	})
-	defer database.Close()
-
-	indexer.SyncListen(eth, database)
-}
-
-var (
-	jsonToDatabase bool = true
-	createSchema   bool = true
-	poolIndex      bool = true
-	tokenListen    bool = true
-)
