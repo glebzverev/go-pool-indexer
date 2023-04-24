@@ -7,7 +7,6 @@ import (
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
 )
@@ -16,19 +15,18 @@ func Echo(s string) string {
 	return s
 }
 
-func toBlockNumArg(number *big.Int) string {
-	if number == nil {
-		return "latest"
-	}
-	pending := big.NewInt(-1)
-	if number.Cmp(pending) == 0 {
-		return "pending"
-	}
-	return hexutil.EncodeBig(number)
-}
+// func toBlockNumArg(number *big.Int) string {
+// 	if number == nil {
+// 		return "latest"
+// 	}
+// 	pending := big.NewInt(-1)
+// 	if number.Cmp(pending) == 0 {
+// 		return "pending"
+// 	}
+// 	return hexutil.EncodeBig(number)
+// }
 
 func GetPair(eth *ethclient.Client, tokenA, tokenB, factoryAddress string, blockNumber *big.Int) (pair_address common.Address, err error) {
-	err = nil
 	zeros := make([]byte, 12)
 	data := make([]byte, 4+12)
 	bytesA := common.HexToAddress(tokenA).Bytes()

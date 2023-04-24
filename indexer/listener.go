@@ -49,7 +49,6 @@ func processSync(database *pg.DB, event *types.Log) {
 	xVirtual, yVirtual := parseSyncEvent(event)
 	pool := new(db.Pool)
 	db.GetPool(database, event.Address.String(), pool)
-	// fmt.Println(pool.Address, pool.Token0Address.Decimals, pool.Token1Address.Decimals)
 	x := (BigIntToFloat(xVirtual, pool.Token0Address.Decimals))
 	y := (BigIntToFloat(yVirtual, pool.Token1Address.Decimals))
 	reserves := db.Reserves{
@@ -61,7 +60,8 @@ func processSync(database *pg.DB, event *types.Log) {
 		BlockNumber: event.BlockNumber,
 	}
 	pool.LastReserveUpdate = &reserves
-	pool.SafetyUpdate(database)
+	err := pool.SafetyUpdate(database)
+	fmt.Println("ERROR ", err)
 	fmt.Println("SYNC", xVirtual, yVirtual)
 }
 

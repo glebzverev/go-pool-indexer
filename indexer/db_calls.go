@@ -27,7 +27,7 @@ func check(err error) {
 func JsonToDataBase(eth *ethclient.Client, dataBase *pg.DB) {
 	jsonFile, err := os.Open("./config.json")
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("ERROR ", err)
 	}
 	fmt.Println("Successfully Opened users.json")
 	defer jsonFile.Close()
@@ -35,7 +35,10 @@ func JsonToDataBase(eth *ethclient.Client, dataBase *pg.DB) {
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 	var chains Chains
 
-	json.Unmarshal(byteValue, &chains)
+	err = json.Unmarshal(byteValue, &chains)
+	if err != nil {
+		panic(err)
+	}
 	for _, chain := range chains.Chains {
 		fmt.Println("Chain Name: " + chain.Name)
 		for _, token := range chain.Tokens {
@@ -122,7 +125,7 @@ func PoolsInit(eth *ethclient.Client, dataBase *pg.DB) {
 
 }
 
-func indexTokens(i int, tokens []db.Token, eth *ethclient.Client, dataBase *pg.DB, dex db.Dex, blockNumber uint64) {
+func IndexTokens(i int, tokens []db.Token, eth *ethclient.Client, dataBase *pg.DB, dex db.Dex, blockNumber uint64) {
 	for j := i; j < len(tokens); j++ {
 		tokenA := tokens[i]
 		tokenB := tokens[j]
@@ -152,8 +155,10 @@ func indexTokens(i int, tokens []db.Token, eth *ethclient.Client, dataBase *pg.D
 				Token1Address:     &tokenB,
 				LastReserveUpdate: reserves,
 			}
-			reserves.SafetyInsert(dataBase)
-			pool.SafetyInsert(dataBase)
+			err = reserves.SafetyInsert(dataBase)
+			fmt.Println("ERROR ", err)
+			err = pool.SafetyInsert(dataBase)
+			fmt.Println("ERROR ", err)
 			time.Sleep(time.Millisecond * 100)
 		}
 	}

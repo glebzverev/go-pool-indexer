@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/glebzverev/go-pool-indexer/arb"
 	"github.com/glebzverev/go-pool-indexer/db"
 	"github.com/go-pg/pg/v10"
 	"github.com/sbwhitecap/tqdm"
@@ -44,8 +45,12 @@ func TestTqdm(t *testing.T) {
 	}
 }
 
+func TestArbAddress(t *testing.T) {
+	arb.ReadPairs()
+}
+
 func processToken[T Type](v interface{}) (brk bool) {
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Millisecond * 10)
 	elem := v.(T)
 	_, err := io.WriteString(os.Stdout, elem.String())
 	if err != nil {
