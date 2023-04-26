@@ -52,6 +52,7 @@ func parseSyncEvent(event types.Log) (*big.Int, *big.Int) {
 }
 
 func (arb *Arb) proceeSyncEvent(event types.Log) {
+	arb.syncMutex.Lock()
 	r1, r2 := parseSyncEvent(event)
 	pool := arb.pools[event.Address]
 	r1l := pool.reserve1
@@ -63,6 +64,8 @@ func (arb *Arb) proceeSyncEvent(event types.Log) {
 	arb.linksMerge[token0][token1].cammulativeReserve1 += -r1l + r1f
 	arb.linksMerge[token0][token1].cammulativeReserve2 += -r2l + r2f
 	fmt.Printf("New reserves, %f %f for %s %s: <%s> \n", r1f, r2f, pool.token0.Symbol, pool.token1.Symbol, event.Address)
+	arb.syncMutex.Unlock()
+
 }
 
 var Topics = struct {

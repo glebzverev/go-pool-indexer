@@ -2,6 +2,7 @@ package arb
 
 import (
 	"math"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -35,6 +36,7 @@ type Arb struct {
 	tokens     map[common.Address]*Token
 	pools      map[common.Address]*Pool
 	chains     map[common.Address]map[common.Address][]common.Address
+	syncMutex  *sync.Mutex
 }
 
 type WeightedPool struct {

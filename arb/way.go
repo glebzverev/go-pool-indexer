@@ -2,6 +2,7 @@ package arb
 
 import (
 	"math"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -12,6 +13,7 @@ type Road struct {
 }
 
 type Way struct {
+	elapsed      time.Duration
 	Roads        []Road
 	AmountOut    float64
 	Price        float64
@@ -35,6 +37,9 @@ type Dot struct {
 }
 
 func (arb *Arb) FindOptimal(start common.Address, finish common.Address, amountIn float64) (*Way, error) {
+	startTime := time.Now()
+	arb.syncMutex.Lock()
+
 	reserveOneHop := arb.GetOneHopReserves(start, finish)
 	middles := arb.GetMiddles(start, finish)
 	twoHopReserves := make([]TwoHopReserves, len(middles))
@@ -68,6 +73,9 @@ func (arb *Arb) FindOptimal(start common.Address, finish common.Address, amountI
 	way.AmountOut = sum
 	way.Price = sum / amountIn
 	way.InversePrice = amountIn / sum
+	arb.syncMutex.Unlock()
+	t := time.Now()
+	way.elapsed = t.Sub(startTime)
 	return way, nil
 }
 

@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/glebzverev/go-pool-indexer/arb"
+	"github.com/glebzverev/go-pool-indexer/server"
 )
 
 var Topics = struct {
@@ -34,6 +35,7 @@ func main() {
 	fmt.Println(arb.Tokens[token].Symbol, res, amountIn/res)
 	opt, _ := ARB.FindOptimal(arb.TokenAddresses["USDT"], arb.TokenAddresses["WETH"], 1e+6)
 	fmt.Println(opt)
+	server.New(ARB)
 	for {
 	}
 }

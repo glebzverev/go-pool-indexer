@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -112,6 +113,7 @@ func ReadPairs() YamlPools {
 
 func CreateKnownPools(yampPools YamlPools) *Arb {
 	arb := &Arb{
+		syncMutex:  new(sync.Mutex),
 		tokens:     Tokens,
 		pools:      make(map[common.Address]*Pool, len(yampPools.Pools)),
 		linksMerge: make(map[common.Address]map[common.Address]*ParallelPools, len(Tokens)),
