@@ -1,19 +1,21 @@
 package arb
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/ethereum/go-ethereum/common"
 )
 
 type Road struct {
-	route []common.Address
-	amoun float64
+	Route  []common.Address
+	Amount float64
 }
 
 type Way struct {
-	roads []Road
+	Roads        []Road
+	AmountOut    float64
+	Price        float64
+	InversePrice float64
 }
 
 type OneHopResrves struct {
@@ -46,14 +48,63 @@ func (arb *Arb) FindOptimal(start common.Address, finish common.Address, amountI
 		a1, a2 := findDots(reserves, amountIn)
 		dots[i] = Dot{a1, a2}
 	}
-	fmt.Println(findDot(reserveOneHop, amountIn))
-	fmt.Println(dots)
-	return nil, nil
+	// one := computeOut(reserveOneHop, amountIn)
+	sum := 0.
+	alpha := 1.
+	for i, dot := range dots {
+		out := 0.
+		if dot.a1 > 0 && dot.a1 < 1 && alpha-dot.a1 > 0 {
+			outMid := computeOut(twoHopReserves[i].first, amountIn*dot.a1)
+			out = computeOut(twoHopReserves[i].second, outMid)
+			alpha -= dot.a1
+		}
+		sum += out
+	}
+	one := computeOut(reserveOneHop, amountIn*alpha)
+
+	sum += one
+	// fmt.Println("Opt", sum, amountIn/sum)
+	way := arb.buildWay(dots, start, finish, middles, amountIn)
+	way.AmountOut = sum
+	way.Price = sum / amountIn
+	way.InversePrice = amountIn / sum
+	return way, nil
+}
+
+func (arb *Arb) buildWay(dots []Dot, start, finish common.Address, middles []common.Address, amountIn float64) *Way {
+	alpha := 1.
+	way := new(Way)
+	for i, dot := range dots {
+		if dot.a1 > 0 && dot.a1 < 1 && alpha-dot.a1 > 0 {
+			divideFirst := arb.linksMerge[start][middles[i]].DividedRoute()
+			divideSecond := arb.linksMerge[middles[i]][finish].DividedRoute()
+			for _, div1 := range divideFirst {
+				for _, div2 := range divideSecond {
+					road := Road{
+						Route:  []common.Address{div1.Pool.address, div2.Pool.address},
+						Amount: dot.a1 * amountIn * div1.Alpha * div2.Alpha,
+					}
+					way.Roads = append(way.Roads, road)
+				}
+			}
+
+			alpha -= dot.a1
+		}
+	}
+	divideOne := arb.linksMerge[start][finish].DividedRoute()
+	for _, div := range divideOne {
+		road := Road{
+			Route:  []common.Address{div.Pool.address},
+			Amount: amountIn * div.Alpha * alpha,
+		}
+		way.Roads = append(way.Roads, road)
+	}
+	return way
 }
 
 func findDot(res OneHopResrves, dX float64) float64 {
 	z1 := res.Reserve0 / res.Reserve1
-	return math.Sqrt(z1) * res.Reserve0 / (2 * dX)
+	return math.Sqrt(z1) * res.Reserve0 / (dX)
 }
 
 func findDots(res TwoHopReserves, dX float64) (float64, float64) {
@@ -63,18 +114,13 @@ func findDots(res TwoHopReserves, dX float64) (float64, float64) {
 	}
 	x1 := res.first.Reserve0
 	x2 := res.second.Reserve0
-	z1 := res.first.Reserve0 / res.first.Reserve1
+	z1 := res.first.Reserve1 / res.first.Reserve0
 	z2 := res.second.Reserve0 / res.second.Reserve1
-	b := (2. / 3.) * (math.Sqrt(z1) * x1) / dX
-	c := (1. / 3.) * (x1 * x2 * math.Sqrt(z2)) / (dX * dX * math.Sqrt(z1))
-	a1 := -b/2 + math.Sqrt(b*b/4+c)
-	a2 := -b/2 - math.Sqrt(b*b/4+c)
-	if !FromZeroToOne(a1) {
-		a1 = 0
-	}
-	if !FromZeroToOne(a2) {
-		a2 = 0
-	}
+	b := (2. / 3.) * (math.Sqrt(z1) * x1) / (dX * (1 - res.first.Fee))
+	c := -(1. / 3.) * (x1 * x2 * math.Sqrt(z2)) / (dX * dX * (1 - res.first.Fee) * (1 - res.second.Fee) * math.Sqrt(z1))
+	a1 := -b/2 + math.Sqrt(b*b/4-c)
+	a2 := -b/2 - math.Sqrt(b*b/4-c)
+
 	return a1, a2
 }
 
@@ -82,7 +128,9 @@ func FromZeroToOne(a float64) bool {
 	return a > 0 && a < 1
 }
 
-func computeOut(reserve)
+func computeOut(res OneHopResrves, dX float64) float64 {
+	return res.Reserve1 * (1 - res.Fee) * dX / (res.Reserve0 + (1-res.Fee)*dX)
+}
 
 func (arb *Arb) GetOneHopReserves(start common.Address, finish common.Address) OneHopResrves {
 	oneHop, ok := arb.linksMerge[start][finish]

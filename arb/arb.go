@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/glebzverev/go-pool-indexer/indexer"
 )
 
 func (arb *Arb) runListenEventsLoop(eth *ethclient.Client) error {
@@ -38,8 +39,8 @@ func (arb *Arb) runListenEventsLoop(eth *ethclient.Client) error {
 				log.Fatal(err)
 			case parsedEvent := <-ch:
 				timeEvent := time.Now()
-				fmt.Println(parseSyncEvent(parsedEvent))
-				fmt.Println(timeEvent, parsedEvent)
+				fmt.Println(timeEvent)
+				arb.proceeSyncEvent(parsedEvent)
 			}
 		}
 	}()
@@ -48,6 +49,20 @@ func (arb *Arb) runListenEventsLoop(eth *ethclient.Client) error {
 
 func parseSyncEvent(event types.Log) (*big.Int, *big.Int) {
 	return new(big.Int).SetBytes(event.Data[:32]), new(big.Int).SetBytes(event.Data[32:64])
+}
+
+func (arb *Arb) proceeSyncEvent(event types.Log) {
+	r1, r2 := parseSyncEvent(event)
+	pool := arb.pools[event.Address]
+	r1l := pool.reserve1
+	r2l := pool.reserve2
+	r1f := indexer.BigIntToFloat(r1, pool.token0.Decimals)
+	r2f := indexer.BigIntToFloat(r2, pool.token1.Decimals)
+	token0 := pool.token0.Address
+	token1 := pool.token1.Address
+	arb.linksMerge[token0][token1].cammulativeReserve1 += -r1l + r1f
+	arb.linksMerge[token0][token1].cammulativeReserve2 += -r2l + r2f
+	fmt.Printf("New reserves, %f %f for %s %s: <%s> \n", r1f, r2f, pool.token0.Symbol, pool.token1.Symbol, event.Address)
 }
 
 var Topics = struct {

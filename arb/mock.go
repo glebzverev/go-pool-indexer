@@ -33,18 +33,18 @@ var Tokens map[common.Address]*Token = map[common.Address]*Token{
 		Symbol:   "WETH",
 		Address:  TokenAddresses["WETH"],
 	},
-	TokenAddresses["USDC"]: &Token{
-		Decimals: 6,
-		Symbol:   "USDC",
-		Address:  TokenAddresses["USDC"],
-	},
 	TokenAddresses["BUSD"]: &Token{
 		Decimals: 18,
 		Symbol:   "BUSD",
 		Address:  TokenAddresses["BUSD"],
 	},
+	TokenAddresses["USDC"]: &Token{
+		Decimals: 6,
+		Symbol:   "USDC",
+		Address:  TokenAddresses["USDC"],
+	},
 	TokenAddresses["WBTC"]: &Token{
-		Decimals: 18,
+		Decimals: 8,
 		Symbol:   "WBTC",
 		Address:  TokenAddresses["WBTC"],
 	},
@@ -107,7 +107,6 @@ func ReadPairs() YamlPools {
 	if err := yaml.Unmarshal(f, &pools); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("%+v\n", pools)
 	return pools
 }
 
@@ -123,9 +122,15 @@ func CreateKnownPools(yampPools YamlPools) *Arb {
 		panic(err)
 	}
 	for _, pool := range yampPools.Pools {
+		tokenA := Tokens[TokenAddresses[pool.Token0Symbol]]
+		tokenB := Tokens[TokenAddresses[pool.Token1Symbol]]
+		if TokenAddresses[pool.Token0Symbol].Hex() > TokenAddresses[pool.Token1Symbol].Hex() {
+			tokenB = Tokens[TokenAddresses[pool.Token0Symbol]]
+			tokenA = Tokens[TokenAddresses[pool.Token1Symbol]]
+		}
 		knownPool := Pool{
-			token0:  Tokens[TokenAddresses[pool.Token0Symbol]],
-			token1:  Tokens[TokenAddresses[pool.Token1Symbol]],
+			token0:  tokenA,
+			token1:  tokenB,
 			address: common.HexToAddress(pool.Address),
 			fee:     pool.Fee,
 		}

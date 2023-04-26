@@ -1,11 +1,13 @@
 package arb
 
 import (
+	"math"
+
 	"github.com/ethereum/go-ethereum/common"
 )
 
 type Token struct {
-	Decimals uint64
+	Decimals uint8
 	Symbol   string
 	Address  common.Address
 }
@@ -33,6 +35,23 @@ type Arb struct {
 	tokens     map[common.Address]*Token
 	pools      map[common.Address]*Pool
 	chains     map[common.Address]map[common.Address][]common.Address
+}
+
+type WeightedPool struct {
+	Pool  *Pool
+	Alpha float64
+}
+
+func (pp *ParallelPools) DividedRoute() []WeightedPool {
+	wp := make([]WeightedPool, 0)
+	for _, pool := range pp.pools {
+		alpha := math.Sqrt(pool.reserve1 / pp.cammulativeReserve1 * pool.reserve2 / pp.cammulativeReserve2)
+		wp = append(wp, WeightedPool{
+			Pool:  pool,
+			Alpha: alpha,
+		})
+	}
+	return wp
 }
 
 func (p *Pool) toParallelPool() *ParallelPools {
@@ -74,8 +93,13 @@ func (pp *ParallelPools) ComputeSwap(address common.Address, amountIn float64) (
 
 func (pp *ParallelPools) AddPool(pool *Pool) {
 	alpha := (pp.cammulativeReserve1/pool.reserve1 + pp.cammulativeReserve2/pool.reserve2) / 2
-	pp.cammulativeReserve1 += pool.reserve1
-	pp.cammulativeReserve2 += pool.reserve2
+	if pool.token0.Address == pp.token0.Address {
+		pp.cammulativeReserve1 += pool.reserve1
+		pp.cammulativeReserve2 += pool.reserve2
+	} else {
+		pp.cammulativeReserve1 += pool.reserve2
+		pp.cammulativeReserve2 += pool.reserve1
+	}
 	pp.pools[pool.address] = pool
 	pp.cammulativeFee = (pp.cammulativeFee + alpha*pool.fee) / (1 + alpha)
 }

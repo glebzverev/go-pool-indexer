@@ -24,65 +24,16 @@ var Topics = struct {
 	Transfer: crypto.Keccak256Hash([]byte("Transfer(address,address,uint256)")),
 }
 
-// func main() {
-// 	dataBase := pg.Connect(&pg.Options{
-// 		User:     "diplomant",
-// 		Password: "diplomant",
-// 		Database: "diplom",
-// 	})
-// 	defer dataBase.Close()
-
-// 	eth, err := ethclient.Dial(os.Getenv("ETH"))
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	pools := db.SelectPools(dataBase)
-// 	blockNumber, err := eth.BlockNumber(context.Background())
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	blockNumberBig := new(big.Int).SetUint64(blockNumber)
-// 	for _, pool := range pools {
-// 		addr := common.HexToAddress(pool.Address)
-// 		if pool.Token0Address == nil || pool.Token1Address == nil {
-// 			continue
-// 		}
-// 		dec1 := pool.Token0Address.Decimals
-// 		dec2 := pool.Token1Address.Decimals
-// 		x, y, err := indexer.GetReserves(eth, addr, dec1, dec2, blockNumberBig)
-// 		if err != nil {
-// 			fmt.Println(err)
-// 			continue
-// 		}
-// 		liq := x * y
-// 		reserve := &db.Reserves{
-// 			Network:     "ethereum",
-// 			Address:     pool.Address,
-// 			Reserve0:    x,
-// 			Reserve1:    y,
-// 			Liquidity:   liq,
-// 			BlockNumber: blockNumber,
-// 		}
-// 		err = reserve.SafetyInsert(dataBase)
-// 		if err != nil {
-// 			panic(err)
-// 		}
-// 		// break
-// 	}
-// }
-
 func main() {
 	yamlPools := arb.ReadPairs()
 	ARB := arb.CreateKnownPools(yamlPools)
-	middles := ARB.GetMiddles(arb.TokenAddresses["USDT"], arb.TokenAddresses["WETH"])
+	// middles := ARB.GetMiddles(arb.TokenAddresses["USDT"], arb.TokenAddresses["WETH"])
 	pool := ARB.GetPoolsByTokens(arb.TokenAddresses["USDT"], arb.TokenAddresses["WETH"])
 	amountIn := 100.2
 	token, res := pool.ComputeSwap(arb.TokenAddresses["USDT"], amountIn)
 	fmt.Println(arb.Tokens[token].Symbol, res, amountIn/res)
-	ARB.FindOptimal(arb.TokenAddresses["USDT"], arb.TokenAddresses["WETH"], 1000000)
-	for _, middle := range middles {
-		fmt.Println(arb.Tokens[middle].Symbol)
-	}
+	opt, _ := ARB.FindOptimal(arb.TokenAddresses["USDT"], arb.TokenAddresses["WETH"], 1e+6)
+	fmt.Println(opt)
 	for {
 	}
 }
