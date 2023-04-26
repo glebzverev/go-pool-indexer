@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/glebzverev/go-pool-indexer/arb"
 )
@@ -81,13 +79,10 @@ func main() {
 	amountIn := 100.2
 	token, res := pool.ComputeSwap(arb.TokenAddresses["USDT"], amountIn)
 	fmt.Println(arb.Tokens[token].Symbol, res, amountIn/res)
+	ARB.FindOptimal(arb.TokenAddresses["USDT"], arb.TokenAddresses["WETH"], 1000000)
 	for _, middle := range middles {
 		fmt.Println(arb.Tokens[middle].Symbol)
 	}
 	for {
 	}
-}
-
-func parseSyncEvent(event *types.Log) (*big.Int, *big.Int) {
-	return new(big.Int).SetBytes(event.Data[:32]), new(big.Int).SetBytes(event.Data[32:64])
 }

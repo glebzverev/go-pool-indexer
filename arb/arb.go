@@ -15,7 +15,6 @@ import (
 )
 
 func (arb *Arb) runListenEventsLoop(eth *ethclient.Client) error {
-
 	var poolAddresses []common.Address
 	for poolAddress := range arb.pools {
 		poolAddresses = append(poolAddresses, poolAddress)

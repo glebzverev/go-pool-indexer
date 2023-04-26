@@ -3,6 +3,7 @@ package indexer
 import (
 	"context"
 	"encoding/binary"
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum"
@@ -58,6 +59,9 @@ func GetReserves(eth *ethclient.Client, poolAddr common.Address, decimalsA uint8
 	resp, err := eth.CallContract(context.Background(), msg, blockNumber)
 	if err != nil {
 		return .0, .0, errors.Wrap(err, "failed to get reserves")
+	}
+	if len(resp) < 64 {
+		return .0, .0, fmt.Errorf("short resp: %d, should be 64", len(resp))
 	}
 	xVirtual = BigIntToFloat(new(big.Int).SetBytes(resp[:32]), decimalsA)
 	yVirtual = BigIntToFloat(new(big.Int).SetBytes(resp[32:64]), decimalsB)
