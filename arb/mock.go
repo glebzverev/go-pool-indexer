@@ -24,32 +24,32 @@ var TokenAddresses map[string]common.Address = map[string]common.Address{
 }
 
 var Tokens map[common.Address]*Token = map[common.Address]*Token{
-	TokenAddresses["USDT"]: &Token{
+	TokenAddresses["USDT"]: {
 		Decimals: 6,
 		Symbol:   "USDT",
 		Address:  TokenAddresses["USDT"],
 	},
-	TokenAddresses["WETH"]: &Token{
+	TokenAddresses["WETH"]: {
 		Decimals: 18,
 		Symbol:   "WETH",
 		Address:  TokenAddresses["WETH"],
 	},
-	TokenAddresses["BUSD"]: &Token{
+	TokenAddresses["BUSD"]: {
 		Decimals: 18,
 		Symbol:   "BUSD",
 		Address:  TokenAddresses["BUSD"],
 	},
-	TokenAddresses["USDC"]: &Token{
+	TokenAddresses["USDC"]: {
 		Decimals: 6,
 		Symbol:   "USDC",
 		Address:  TokenAddresses["USDC"],
 	},
-	TokenAddresses["WBTC"]: &Token{
+	TokenAddresses["WBTC"]: {
 		Decimals: 8,
 		Symbol:   "WBTC",
 		Address:  TokenAddresses["WBTC"],
 	},
-	TokenAddresses["BNB"]: &Token{
+	TokenAddresses["BNB"]: {
 		Decimals: 18,
 		Symbol:   "BNB",
 		Address:  TokenAddresses["BNB"],
