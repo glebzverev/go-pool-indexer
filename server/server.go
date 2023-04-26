@@ -22,7 +22,14 @@ func New(ARB *arb.Arb) {
 		serverPort := 3000
 		mux := http.NewServeMux()
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, "Hello from router")
+
+			fmt.Fprintf(w, "Hello from router\n")
+			tokens := make([]string, 0)
+			for symbol := range arb.TokenAddresses {
+				tokens = append(tokens, symbol)
+			}
+			fmt.Fprintf(w, "Tokens available for trade: %+v\n", tokens)
+			fmt.Fprintf(w, "Data config {from:<token>, to:<token>, amount:<float>}\n")
 		})
 		mux.HandleFunc("/way/", func(w http.ResponseWriter, r *http.Request) {
 			body, err := ioutil.ReadAll(r.Body)
@@ -48,7 +55,7 @@ func New(ARB *arb.Arb) {
 				return
 			}
 			way, err := ARB.FindOptimal(from, to, data.Amount)
-			fmt.Fprintf(w, "%+v", *way)
+			fmt.Fprintf(w, "%+v\n", *way)
 		})
 
 		server := http.Server{
